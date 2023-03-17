@@ -1,0 +1,15 @@
+name: Commit Author CI
+
+on:
+  push:
+jobs:
+  check-commits-authors:
+    runs-on: ubuntu-latest
+    steps:
+    - name: "Checking commits authors email domain"
+      uses: semcelik/commit-author-action@master
+      with:
+        email_domain: 'profusion.mobi'
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        error_on_fail: 'true'
+  
