@@ -1,6 +1,7 @@
 name: Commit Author CI
 
 on:
+  pull_request:
   push:
 jobs:
   check-commits-authors:
