@@ -1,18 +1,41 @@
 name: Commit Author CI
 
 on:
-  pull_request:
+  pull_request_review:
   push:
+
 jobs:
-  check-commits-authors:
+  check-approvals:
     runs-on: ubuntu-latest
-    permissions:
-      pull-requests: read
+    outputs:
+      result: ${{ steps.count_approvals.outputs.result }}
     steps:
-    - name: "Checking commits authors email domain"
-      uses: semcelik/commit-author-action@master
-      with:
-        email_domain: 'profusion.mobi'
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        error_on_fail: 'true'
-  
+      - id: count_approvals
+        run: |
+          echo "::set-output name=result::true"
+          MIN_APPROVALS_NEEDED=${{vars.MIN_APPROVALS_NEEDED}}
+          echo "$MIN_APPROVALS_NEEDED"
+          exit 0
+  test:
+    runs-on: ubuntu-latest
+    needs: check-approvals
+    if: needs.check-approvals.outputs.result == 'true'
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: "Run Test"
+        run: |
+          echo ${{ needs.check-approvals.outputs.result }}
+          echo "Hello, World!"
+
+  test2:
+    runs-on: ubuntu-latest
+    needs: test
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: "Run Test"
+        run: |
+          echo "Hello, World!"
