@@ -7,9 +7,7 @@ jobs:
   check-commits-authors:
     runs-on: ubuntu-latest
     permissions:
-      checks: write
-      contents: read
-      pull-requests: write
+      pull-requests: read
     steps:
     - name: "Checking commits authors email domain"
       uses: semcelik/commit-author-action@master
