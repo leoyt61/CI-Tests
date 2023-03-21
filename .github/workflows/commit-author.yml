@@ -3,16 +3,53 @@ name: Commit Author CI
 on:
   pull_request:
   push:
+
+env:
+  MIN_APPROVALS_NEEDED: 1
+  PAT: ${{ secrets.PAT }}
+
 jobs:
-  check-commits-authors:
+  check_approvals:
     runs-on: ubuntu-latest
-    permissions:
-      pull-requests: read
     steps:
-    - name: "Checking commits authors email domain"
-      uses: semcelik/commit-author-action@master
-      with:
-        email_domain: 'profusion.mobi'
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        error_on_fail: 'true'
-  
+      - uses: octokit/request-action@v2.x
+        id: check_approvals
+        if: ${{ github.event_name == 'pull_request' }}
+        with:
+          route: GET /repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/reviews
+        env:
+          GITHUB_TOKEN: ${{ env.PAT }}
+      - id: test_variables
+        if: ${{ github.event_name == 'pull_request' }}
+        run: |
+          JSON_RESPONSE='${{ steps.check_approvals.outputs.data }}'
+          CURRENT_APPROVALS_COUNT=$(echo $JSON_RESPONSE | jq -c '[.[] | select(.state | contains("APPROVED")) ] | length')
+          if [[ "$CURRENT_APPROVALS_COUNT" -lt ${{ env.MIN_APPROVALS_NEEDED }} ]]; then
+            echo "ERROR: Pull request must have at least ${{env.MIN_APPROVALS_NEEDED  }} approvals."
+            curl -X POST -H "Authorization: Bearer ${{ env.PAT }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/disable
+          fi
+  test:
+    runs-on: ubuntu-latest
+    needs: check_approvals
+    if: ${{ github.event_name == 'push' || needs.check_approvals.status == 'success' }}
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: "Run Test"
+        run: |
+          echo "Hello, World!"
+
+  test2:
+    runs-on: ubuntu-latest
+    needs: test
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: "Run Test"
+        run: |
+          echo "Hello, World!"
+    
